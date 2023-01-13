@@ -70,9 +70,9 @@ function getVirtualizationDrivers {
   echo
 
   if [[ "$VIRTUALIZATION_DRIVERS" = "vmware" ]]; then
-    virt-customize -a /tmp/ubuntu_$UBUNTU_VERSION.img --install open-vm-tools
+    virt-customize -a /tmp/ubuntu_$UBUNTU_VERSION-cloudimg-$(date +"%Y-%m-%d").img --install open-vm-tools
   elif [[ "$VIRTUALIZATION_DRIVERS" = "kvm" ]]; then
-    virt-customize -a /tmp/ubuntu_$UBUNTU_VERSION.img --install qemu-guest-agent
+    virt-customize -a /tmp/ubuntu_$UBUNTU_VERSION-cloudimg-$(date +"%Y-%m-%d").img --install qemu-guest-agent
   else
     echo
     echo "You must select either 'kvm' or 'vmware' for virtualization drivers. To request other packages, please create an issue with the specific package listed"
@@ -115,7 +115,7 @@ function installPreludeProbe {
     sed -i s/PRELUDE_ACCOUNT_SECRET=\"\"/PRELUDE_ACCOUNT_ID=\"$PRELUDE_SERVICE_ACCOUNT_TOKEN\"/g /tmp/install.sh
 
     # On first boot, the image will install the probe and establish communication with prelude-cli
-    virt-customize -a /tmp/ubuntu_$UBUNTU_VERSION.img --firstboot /tmp/install.sh
+    virt-customize -a /tmp/ubuntu_$UBUNTU_VERSION-cloudimg-$(date +"%Y-%m-%d").img --firstboot /tmp/install.sh
   fi
 }
 
@@ -131,10 +131,10 @@ function installSaltMinion {
   if [[ -z "$SALT_MASTER_IP" ]]; then
     echo "A Salt-master IP address is required to use this feature"
   elif [[ "$SALT_MASTER_IP" ]]; then
-    virt-customize -a /tmp/ubuntu_$UBUNTU_VERSION.img --install python3-pip
-    virt-customize -a /tmp/ubuntu_$UBUNTU_VERSION.img --run-command "curl -o bootstrap-salt.sh -L https://bootstrap.saltproject.io"
-    virt-customize -a /tmp/ubuntu_$UBUNTU_VERSION.img --run-command "chmod +x bootstrap-salt.sh"
-    virt-customize -a /tmp/ubuntu_$UBUNTU_VERSION.img --firstboot-command "./bootstrap-salt.sh -P stable -A $SALT_MASTER_IP"
+    virt-customize -a /tmp/ubuntu_$UBUNTU_VERSION-cloudimg-$(date +"%Y-%m-%d").img --install python3-pip
+    virt-customize -a /tmp/ubuntu_$UBUNTU_VERSION-cloudimg-$(date +"%Y-%m-%d").img --run-command "curl -o bootstrap-salt.sh -L https://bootstrap.saltproject.io"
+    virt-customize -a /tmp/ubuntu_$UBUNTU_VERSION-cloudimg-$(date +"%Y-%m-%d").img --run-command "chmod +x bootstrap-salt.sh"
+    virt-customize -a /tmp/ubuntu_$UBUNTU_VERSION-cloudimg-$(date +"%Y-%m-%d").img --firstboot-command "./bootstrap-salt.sh -P stable -A $SALT_MASTER_IP"
   fi
 }
 
@@ -146,13 +146,13 @@ function installAdditionalPackages {
   echo "Due to constraints with virt-customize, only ONE package may be installed at a time."
   echo
   read -p "Please enter the name of the package you would like to install: " PACKAGE_NAME
-  virt-customize -a /tmp/ubuntu_$UBUNTU_VERSION.img --install $PACKAGE_NAME
+  virt-customize -a /tmp/ubuntu_$UBUNTU_VERSION-cloudimg-$(date +"%Y-%m-%d").img --install $PACKAGE_NAME
   read -p "Would you like to install any additional packages from apt? (y/N)" INSTALL_MORE
   echo
 
   while [[ "$INSTALL_MORE" -eq "y" || "$INSTALL_MORE" = -eq ]]; do
     read -p "Please enter the name of the package you would like to install: " PACKAGE_NAME
-    virt-customize -a /tmp/ubuntu_$UBUNTU_VERSION.img --install $PACKAGE_NAME
+    virt-customize -a /tmp/ubuntu_$UBUNTU_VERSION-cloudimg-$(date +"%Y-%m-%d").img --install $PACKAGE_NAME
     echo
     INSTALL_MORE=n
     read -p "Would you like to install any additional packages from apt? (y/N)" INSTALL_MORE
@@ -171,11 +171,11 @@ function makeAdminUser {
   echo
 
   if [[ ! -z $USERNAME && ! -z $PASSWORD ]]; then
-    virt-customize -a /tmp/ubuntu_$UBUNTU_VERSION.img --run-command "useradd $USERNAME"
-    virt-customize -a /tmp/ubuntu_$UBUNTU_VERSION.img --run-command "usermod -aG adm $USERNAME"
-    virt-customize -a /tmp/ubuntu_$UBUNTU_VERSION.img --run-command "echo '$USERNAME:$PASSWORD' | chpasswd"
-    virt-customize -a /tmp/ubuntu_$UBUNTU_VERSION.img --run-command "mkdir -p /home/$USERNAME/.ssh"
-    virt-customize -a /tmp/ubuntu_$UBUNTU_VERSION.img --run-command "chown -R $USERNAME:$USERNAME /home/$USERNAME"
+    virt-customize -a /tmp/ubuntu_$UBUNTU_VERSION-cloudimg-$(date +"%Y-%m-%d").img --run-command "useradd $USERNAME"
+    virt-customize -a /tmp/ubuntu_$UBUNTU_VERSION-cloudimg-$(date +"%Y-%m-%d").img --run-command "usermod -aG adm $USERNAME"
+    virt-customize -a /tmp/ubuntu_$UBUNTU_VERSION-cloudimg-$(date +"%Y-%m-%d").img --run-command "echo '$USERNAME:$PASSWORD' | chpasswd"
+    virt-customize -a /tmp/ubuntu_$UBUNTU_VERSION-cloudimg-$(date +"%Y-%m-%d").img --run-command "mkdir -p /home/$USERNAME/.ssh"
+    virt-customize -a /tmp/ubuntu_$UBUNTU_VERSION-cloudimg-$(date +"%Y-%m-%d").img --run-command "chown -R $USERNAME:$USERNAME /home/$USERNAME"
   fi
 
   if [[ $IMPORT_SSH_STATE -eq "y" || $IMPORT_SSH_STATE -eq "Y" ]]; then
@@ -184,7 +184,7 @@ function makeAdminUser {
 
     if [[ -f $SSH_KEY_LOCATION ]]; then
     echo "Importing SSH key"
-    virt-customize -a /tmp/ubuntu_$UBUNTU_VERSION.img --ssh-inject $USERNAME:file:$SSH_KEY_LOCATION
+    virt-customize -a /tmp/ubuntu_$UBUNTU_VERSION-cloudimg-$(date +"%Y-%m-%d").img --ssh-inject $USERNAME:file:$SSH_KEY_LOCATION
     fi
 
   fi
