@@ -1,13 +1,15 @@
 #!/bin/bash
 
-### This script assists with the customization of Ubuntu LTS Cloud images
+### This script assists with the customization of Ubuntu LTS Cloud images.
+### Written and tested on Ubuntu LTS 22.04.1
 
 if [[ ! $UID -eq 0 ]]; then
     echo "Sudo is required to run imogen"
     exit 1
 fi
 
-if [[ ! $(dpkg -l libguestfs-tools) == *"ii  libguestfs-tools"* ]]; then
+# Ensure that libguestfs-tools is installed. Install if it is not.
+if [[ $(dpkg -l libguestfs-tools) != *"ii  libguestfs-tools"* ]]; then
 apt update -y && apt install libguestfs-tools -y
 fi
 
@@ -25,6 +27,7 @@ function usage {
     exit
 }
 
+# Download Ubuntu LTS cloud images, save into /tmp/.
 function getUbuntuVersion {
 
   echo
@@ -37,15 +40,29 @@ function getUbuntuVersion {
   read -p "Select an LTS version of Ubuntu: (bionic/focal/jammy) " UBUNTU_VERSION
   echo
 
+  # Require supported LTS release.
   if [[ ! $UBUNTU_VERSION -eq "bionic" || ! $UBUNTU_VERSION -eq "focal" || ! $UBUNTU_VERSION -eq "jammy" ]]; then
-  echo "This script requires a valid, supported LTS branch of Ubuntu"
-  getUbuntuVersion
-  else
-  wget -O /tmp/ubuntu_$UBUNTU_VERSION.img https://cloud-images.ubuntu.com/$UBUNTU_VERSION/current/$UBUNTU_VERSION-server-cloudimg-amd64.img
+    echo "This script requires a valid, supported LTS branch of Ubuntu"
+    getUbuntuVersion
+
+  # If image already exists, validate SHA256 against default Canonical image.
+  elif [[ -f /tmp/ubuntu_$UBUNTU_VERSION-cloudimg-$(date +"%Y-%m-%d").img ]]; then 
+    SHA256_UBUNTU_IMG=$(sha256sum /tmp/ubuntu_$UBUNTU_VERSION-cloudimg-$(date +"%Y-%m-%d").img)
+    wget -O /tmp/ubuntu_SHA256_sums https://cloud-images.ubuntu.com/$UBUNTU_VERSION/current/SHA256SUMS
+    
+    # Download image if SHA256 fails to validate against Canonical.
+    if [[  "$(grep -o $SHA256_UBUNTU_IMG /tmp/ubuntu_SHA256_sums | wc -l)" == "0" ]]; then
+      wget -O /tmp/ubuntu_$UBUNTU_VERSION-cloudimg-$(date +"%Y-%m-%d").img https://cloud-images.ubuntu.com/$UBUNTU_VERSION/current/$UBUNTU_VERSION-server-cloudimg-amd64.img
+    fi
+  
+  # Download image if it does not exist on storage.
+  elif [[ ! -f /tmp/ubuntu_$UBUNTU_VERSION-cloudimg-$(date +"%Y-%m-%d").img ]]; then
+    wget -O /tmp/ubuntu_$UBUNTU_VERSION-cloudimg-$(date +"%Y-%m-%d").img https://cloud-images.ubuntu.com/$UBUNTU_VERSION/current/$UBUNTU_VERSION-server-cloudimg-amd64.img
   fi
 
 }
 
+# Install Virtualization Driver packages.
 function getVirtualizationDrivers {
 
   echo
@@ -64,16 +81,20 @@ function getVirtualizationDrivers {
 
 }
 
+# Add Prelude Probe auto-installer to image.
+# Intended for scalable environments. Requires the deployment of prelude-cli, as well as a 'registrar service' token.
+# For more information: 
+# https://docs.prelude.org/docs/prelude-cli
+# https://docs.prelude.org/docs/individual-probe-deployment
 function installPreludeProbe {
-
 
   echo "Please input your Prelude credentials: "
   read -p "Prelude account ID: " PRELUDE_ACCOUNT_ID
   read -p "Prelude service account token: " PRELUDE_SERVICE_ACCOUNT_TOKEN
   echo
 
+  # Generates HTTP code for credential validation.
   CHECK_VALID_CREDS=$(curl -f -X POST -H "account:$PRELUDE_ACCOUNT_ID" -H "token:$PRELUDE_SERVICE_ACCOUNT_TOKEN" -H 'Content-Type: application/json' 'https://api.preludesecurity.com/detect/endpoint' -w '%{http_code}\n' -s)
-  echo $CHECK_VALID_CREDS
 
   if [[ -z "$PRELUDE_ACCOUNT_ID" ]]; then
     echo
@@ -81,23 +102,26 @@ function installPreludeProbe {
   elif [[ -z "$PRELUDE_SERVICE_ACCOUNT_TOKEN" ]]; then
     echo
     echo "A Prelude Service Account Token is required to use this feature"
+  
+  # At this time, 40x errors indicate bad credentials. If one of these errors is identified, require user to input credentials again.
   elif [[ $(echo $CHECK_VALID_CREDS | grep -o  '40' | wc -l ) == "1"  ]]; then
     echo "Prelude Probe requires valid credentials. Please try again. "
     installPreludeProbe
   else
     curl -o /tmp/install.sh -L https://raw.githubusercontent.com/preludeorg/libraries/master/shell/probe/install.sh
-
+    
+    # Replacement regex strings to import valid Prelude credentials into probe install.sh script.
     sed -i s/PRELUDE_ACCOUNT_ID=\"\"/PRELUDE_ACCOUNT_ID=\"$PRELUDE_ACCOUNT_ID\"/g /tmp/install.sh
     sed -i s/PRELUDE_ACCOUNT_SECRET=\"\"/PRELUDE_ACCOUNT_ID=\"$PRELUDE_SERVICE_ACCOUNT_TOKEN\"/g /tmp/install.sh
 
+    # On first boot, the image will install the probe and establish communication with prelude-cli
     virt-customize -a /tmp/ubuntu_$UBUNTU_VERSION.img --firstboot /tmp/install.sh
-    rm /tmp/install.sh
   fi
 }
 
 
 
-
+# Downloads Salt bootstrap to image and adds firstboot command execution to ensure device establishes connection with Salt-master.
 function installSaltMinion {
 
   echo
@@ -114,6 +138,8 @@ function installSaltMinion {
   fi
 }
 
+# Install any additional packages from default Canonical apt repositories.
+# Due to constraints w/ virt-customize, only one package may be installed at a time.
 function installAdditionalPackages {
 
   echo
@@ -134,9 +160,9 @@ done
 
 }
 
-
+# Create a default administrator account on image, as well as optionally import SSH pubkey to the account.
 function makeAdminUser {
-  # Admin User Variables
+
   read -p "Please enter a username for the administrator account: " USERNAME
   echo
   read -p "Please enter a password for the administrator account: " PASSWORD
