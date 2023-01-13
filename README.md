@@ -7,7 +7,7 @@
 # Overview of the script
 I was playing around with making custom Ubuntu Cloud Images so that I could test out Prelude Probes. Enter... Imogen. Working with virt-customize is not a cumbersome task in of itself but I wanted to streamline the process, as well as make it a little more simple for anyone to generate their own images. I also made an effort to validate Prelude credentials to ensure that there are no nasty surprises after the image is deployed. I've also included Salt-minion installation, so that any deployed image is nearly immediately ready for remote orchestration.
 
-This script will likely be improved upon, to include support for other Linux distributions as well as to add support for additional customizations.
+This script will likely be improved upon, to include support for other Linux distributions and architectures (currently only x64) as well as to add support for additional customizations.
 
 If anyone would like any additional features which aren't currently supported, please feel free to open an issue with your request or to create your own fork!
 
