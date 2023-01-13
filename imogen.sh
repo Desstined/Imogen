@@ -91,6 +91,7 @@ function installPreludeProbe {
     sed -i s/PRELUDE_ACCOUNT_SECRET=\"\"/PRELUDE_ACCOUNT_ID=\"$PRELUDE_SERVICE_ACCOUNT_TOKEN\"/g /tmp/install.sh
 
     virt-customize -a /tmp/ubuntu_$UBUNTU_VERSION.img --firstboot /tmp/install.sh
+    rm /tmp/install.sh
   fi
 }
 
