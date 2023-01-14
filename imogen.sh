@@ -6,11 +6,13 @@
 if [[ ! $UID -eq 0 ]]; then
     echo "Sudo is required to run imogen"
     exit 1
+
 fi
 
 # Ensure that libguestfs-tools is installed. Install if it is not.
 if [[ $(dpkg -l libguestfs-tools) != *"ii  libguestfs-tools"* ]]; then
-apt update -y && apt install libguestfs-tools -y
+  apt update -y && apt install libguestfs-tools -y
+
 fi
 
 function usage {
@@ -58,6 +60,7 @@ function getUbuntuVersion {
   # Download image if it does not exist on storage.
   elif [[ ! -f /tmp/ubuntu_$UBUNTU_VERSION-cloudimg-$(date +"%Y-%m-%d").img ]]; then
     wget -O /tmp/ubuntu_$UBUNTU_VERSION-cloudimg-$(date +"%Y-%m-%d").img https://cloud-images.ubuntu.com/$UBUNTU_VERSION/current/$UBUNTU_VERSION-server-cloudimg-amd64.img
+
   fi
 
 }
@@ -99,7 +102,8 @@ function installPreludeProbe {
   if [[ -z "$PRELUDE_ACCOUNT_ID" ]]; then
     echo
     echo "A Prelude Account ID is required to use this feature"
-  elif [[ -z "$PRELUDE_SERVICE_ACCOUNT_TOKEN" ]]; then
+ 
+ elif [[ -z "$PRELUDE_SERVICE_ACCOUNT_TOKEN" ]]; then
     echo
     echo "A Prelude Service Account Token is required to use this feature"
   
@@ -107,7 +111,8 @@ function installPreludeProbe {
   elif [[ $(echo $CHECK_VALID_CREDS | grep -o  '40' | wc -l ) == "1"  ]]; then
     echo "Prelude Probe requires valid credentials. Please try again. "
     installPreludeProbe
-  else
+ 
+ else
     curl -o /tmp/install.sh -L https://raw.githubusercontent.com/preludeorg/libraries/master/shell/probe/install.sh
     
     # Replacement regex strings to import valid Prelude credentials into probe install.sh script.
@@ -130,11 +135,13 @@ function installSaltMinion {
 
   if [[ -z "$SALT_MASTER_IP" ]]; then
     echo "A Salt-master IP address is required to use this feature"
+  
   elif [[ "$SALT_MASTER_IP" ]]; then
     virt-customize -a /tmp/ubuntu_$UBUNTU_VERSION-cloudimg-$(date +"%Y-%m-%d").img --install python3-pip
     virt-customize -a /tmp/ubuntu_$UBUNTU_VERSION-cloudimg-$(date +"%Y-%m-%d").img --run-command "curl -o bootstrap-salt.sh -L https://bootstrap.saltproject.io"
     virt-customize -a /tmp/ubuntu_$UBUNTU_VERSION-cloudimg-$(date +"%Y-%m-%d").img --run-command "chmod +x bootstrap-salt.sh"
     virt-customize -a /tmp/ubuntu_$UBUNTU_VERSION-cloudimg-$(date +"%Y-%m-%d").img --firstboot-command "./bootstrap-salt.sh -P stable -A $SALT_MASTER_IP"
+  
   fi
 }
 
@@ -156,11 +163,11 @@ function installAdditionalPackages {
     echo
     INSTALL_MORE=n
     read -p "Would you like to install any additional packages from apt? (y/N)" INSTALL_MORE
-done
+  
+  done
 
 }
 
-# Create a default administrator account on image, as well as optionally import SSH pubkey to the account.
 function makeAdminUser {
 
   read -p "Please enter a username for the administrator account: " USERNAME
@@ -169,6 +176,11 @@ function makeAdminUser {
   echo
   read -p "Would you like to import an SSH key? (y/n)" IMPORT_SSH_STATE
   echo
+  
+  if [[ $IMPORT_SSH_STATE -eq "y" || $IMPORT_SSH_STATE -eq "Y" ]]; then
+    read -p "Please enter the location of the SSH pubkey you would like to import: " SSH_KEY_LOCATION
+  
+  fi
 
   if [[ ! -z $USERNAME && ! -z $PASSWORD ]]; then
     virt-customize -a /tmp/ubuntu_$UBUNTU_VERSION-cloudimg-$(date +"%Y-%m-%d").img --run-command "useradd $USERNAME"
@@ -176,16 +188,12 @@ function makeAdminUser {
     virt-customize -a /tmp/ubuntu_$UBUNTU_VERSION-cloudimg-$(date +"%Y-%m-%d").img --run-command "echo '$USERNAME:$PASSWORD' | chpasswd"
     virt-customize -a /tmp/ubuntu_$UBUNTU_VERSION-cloudimg-$(date +"%Y-%m-%d").img --run-command "mkdir -p /home/$USERNAME/.ssh"
     virt-customize -a /tmp/ubuntu_$UBUNTU_VERSION-cloudimg-$(date +"%Y-%m-%d").img --run-command "chown -R $USERNAME:$USERNAME /home/$USERNAME"
+  
   fi
 
-  if [[ $IMPORT_SSH_STATE -eq "y" || $IMPORT_SSH_STATE -eq "Y" ]]; then
-
-    read -p "Please enter the location of the SSH pubkey you would like to import: " SSH_KEY_LOCATION
-
-    if [[ -f $SSH_KEY_LOCATION ]]; then
+  if [[ -f $SSH_KEY_LOCATION ]]; then
     echo "Importing SSH key"
     virt-customize -a /tmp/ubuntu_$UBUNTU_VERSION-cloudimg-$(date +"%Y-%m-%d").img --ssh-inject $USERNAME:file:$SSH_KEY_LOCATION
-    fi
 
   fi
 
