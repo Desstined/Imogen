@@ -74,12 +74,15 @@ function getVirtualizationDrivers {
 
   if [[ "$VIRTUALIZATION_DRIVERS" = "vmware" ]]; then
     virt-customize -a /tmp/ubuntu_$UBUNTU_VERSION-cloudimg-$(date +"%Y-%m-%d").img --install open-vm-tools
+  
   elif [[ "$VIRTUALIZATION_DRIVERS" = "kvm" ]]; then
     virt-customize -a /tmp/ubuntu_$UBUNTU_VERSION-cloudimg-$(date +"%Y-%m-%d").img --install qemu-guest-agent
+  
   else
     echo
     echo "You must select either 'kvm' or 'vmware' for virtualization drivers. To request other packages, please create an issue with the specific package listed"
     getVirtualzationDrivers
+  
   fi
 
 }
@@ -103,7 +106,7 @@ function installPreludeProbe {
     echo
     echo "A Prelude Account ID is required to use this feature"
  
- elif [[ -z "$PRELUDE_SERVICE_ACCOUNT_TOKEN" ]]; then
+  elif [[ -z "$PRELUDE_SERVICE_ACCOUNT_TOKEN" ]]; then
     echo
     echo "A Prelude Service Account Token is required to use this feature"
   
@@ -112,7 +115,7 @@ function installPreludeProbe {
     echo "Prelude Probe requires valid credentials. Please try again. "
     installPreludeProbe
  
- else
+  else
     curl -o /tmp/install.sh -L https://raw.githubusercontent.com/preludeorg/libraries/master/shell/probe/install.sh
     
     # Replacement regex strings to import valid Prelude credentials into probe install.sh script.
@@ -122,6 +125,7 @@ function installPreludeProbe {
     # On first boot, the image will install the probe and establish communication with prelude-cli
     virt-customize -a /tmp/ubuntu_$UBUNTU_VERSION-cloudimg-$(date +"%Y-%m-%d").img --firstboot /tmp/install.sh
   fi
+  
 }
 
 
