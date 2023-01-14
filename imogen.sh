@@ -105,10 +105,12 @@ function installPreludeProbe {
   if [[ -z "$PRELUDE_ACCOUNT_ID" ]]; then
     echo
     echo "A Prelude Account ID is required to use this feature"
+    installPreludeProbe
  
   elif [[ -z "$PRELUDE_SERVICE_ACCOUNT_TOKEN" ]]; then
     echo
     echo "A Prelude Service Account Token is required to use this feature"
+    installPreludeProbe
   
   # At this time, 40x errors indicate bad credentials. If one of these errors is identified, require user to input credentials again.
   elif [[ $(echo $CHECK_VALID_CREDS | grep -o  '40' | wc -l ) == "1"  ]]; then
