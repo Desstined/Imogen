@@ -150,7 +150,7 @@ function installAdditionalPackages {
   read -p "Would you like to install any additional packages from apt? (y/N)" INSTALL_MORE
   echo
 
-  while [[ "$INSTALL_MORE" -eq "y" || "$INSTALL_MORE" = -eq ]]; do
+  while [[ "$INSTALL_MORE" -eq "y" || "$INSTALL_MORE" = -eq "Y" ]]; do
     read -p "Please enter the name of the package you would like to install: " PACKAGE_NAME
     virt-customize -a /tmp/ubuntu_$UBUNTU_VERSION-cloudimg-$(date +"%Y-%m-%d").img --install $PACKAGE_NAME
     echo
